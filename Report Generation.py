@@ -122,6 +122,8 @@ def build_default_summary_table(test_type, summary_df):
     for _, row_data in summary_df.iterrows():
         row_values = [latex_escape(val) for val in row_data]
         row_lines.append(" & ".join(row_values) + " \\\\ \\hline")
+    rows = "\n".join(row_lines)
+    escaped_test_type = test_type.replace('_', '\\_')
     latex_str = rf"""
 \noindent
 \renewcommand{{\arraystretch}}{{1.3}}
@@ -129,13 +131,13 @@ def build_default_summary_table(test_type, summary_df):
 
 \begin{{table}}[H]
     \centering
-    \caption{{{test_type.replace('_','\\_')} Results Table}}
+    \caption{{{escaped_test_type} Results Table}}
     \label{{tab:{test_type.replace(' ','_')}_Results}}
     \begin{{tabularx}}{{\linewidth}}{{{column_format}}}
         \hline
         \rowcolor{{headerblue}}
         {header_row}
-{ "\n".join(row_lines) }
+{rows}
     \end{{tabularx}}
 \end{{table}}
 """
@@ -196,6 +198,7 @@ def generate_main_tex(main_tex_path, project_name, section_files, exec_summary_f
     exec_summary_relative = os.path.join("Matter", os.path.basename(exec_summary_file))
     exec_summary_relative = exec_summary_relative.replace("\\", "/")
     
+    escaped_project_name = project_name.replace('_', '\\_')
     main_content = rf"""\documentclass{{article}}
 \usepackage{{graphicx}}
 \usepackage{{longtable}}
@@ -213,12 +216,12 @@ def generate_main_tex(main_tex_path, project_name, section_files, exec_summary_f
 \definecolor{{headerblue}}{{HTML}}{{002060}}
 
 \title{{Hold Point Testing Report}}
-\author{{{project_name.replace('_', '\\_')}}}
+\author{{{escaped_project_name}}}
 \date{{\today}}
 
 \pagestyle{{fancy}}
 \fancyhf{{}}
-\fancyhead[L]{{HP2 Test Report | {project_name.replace('_', '\\_')}}}
+\fancyhead[L]{{HP2 Test Report | {escaped_project_name}}}
 \fancyhead[R]{{\includegraphics[height=0.8cm]{{Figures/Theme/company_logo.jpg}}}}
 \renewcommand{{\headrulewidth}}{{0.2pt}}
 \setlength{{\headsep}}{{35pt}}
@@ -288,7 +291,8 @@ def generate_latex_report(
         section_files = []
         
         # Write Executive Summary to its own file in the Matter folder
-        exec_summary_content = rf"""This report documents the Hold Point Testing for {project_name.replace('_', '\\_')}.
+        escaped_project_name = project_name.replace('_', '\\_')
+        exec_summary_content = rf"""This report documents the Hold Point Testing for {escaped_project_name}.
 Below is the breakdown of test steps categorized by test type."""
         exec_summary_file = os.path.join(matter_dir, "section_executive_summary.tex")
         write_section_file(exec_summary_file, exec_summary_content)
@@ -309,15 +313,16 @@ Below is the breakdown of test steps categorized by test type."""
             section_files.append(relative_section_path)
             
             section_content = ""
-            section_content += f"\\section{{{test_type.replace('_', '\\_')}}}\n"
+            escaped_test_type = test_type.replace('_', '\\_')
+            section_content += f"\\section{{{escaped_test_type}}}\n"
             section_content += build_main_table(test_type, df)
             
             # Check for summary table: either COMFAIL (custom) or default summary if summary.xlsx exists
             summary_excel_path = os.path.join(
-                r"C:\Users\rodrigo.ghersi\OneDrive - EPEC Group Pty Ltd\Jupyter Notebooks\00. Projects\KSF_Processed",
-                "SF" + test_type,
+                "data",
+                f"SF{test_type}",
                 "POC",
-                "summary.xlsx"
+                "summary.xlsx",
             )
             
             # If there's a summary table, create a standalone summary document
@@ -342,7 +347,7 @@ Below is the breakdown of test steps categorized by test type."""
                 section_content += r"\subsection{Results}" + "\n"
                 section_content += rf"""
 \clearpage
-\includepdf[pages=-, pagecommand={\thispagestyle{{empty}}}, fitpaper=true]{{Matter/{file_safe_test_type}/summary_standalone.pdf}}
+\includepdf[pages=-, pagecommand={{\thispagestyle{{empty}}}}, fitpaper=true]{{Matter/{file_safe_test_type}/summary_standalone.pdf}}
 \clearpage
 """
             # Overlays Subsection
@@ -392,15 +397,15 @@ Below is the breakdown of test steps categorized by test type."""
 
 # Example usage
 if __name__ == "__main__":
-    excel_file_path = r"C:\Users\rodrigo.ghersi\OneDrive - EPEC Group Pty Ltd\Jupyter Notebooks\04. Report Generation\Projects\KSF\Kingaroy SF HP2 Testing.xlsx"
+    excel_file_path = os.path.join("data", "Kingaroy SF HP2 Testing.xlsx")
     project_name = "Kingaroy SF"
-    # Main .tex file path is outside the Matter folder
-    output_tex_file = r"C:\Users\rodrigo.ghersi\OneDrive - EPEC Group Pty Ltd\Jupyter Notebooks\04. Report Generation\Projects\KSF\Kingaroy_SF_HP2_Testing.tex"
-    
+    # The generated report will be saved in the repository root
+    output_tex_file = "Kingaroy_SF_HP2_Testing.tex"
+
     generate_latex_report(
-        excel_file_path, 
-        project_name, 
+        excel_file_path,
+        project_name,
         output_tex_file,
-        overlays_dir="Figures/Overlays",
-        plots_dir=r"C:\Users\rodrigo.ghersi\OneDrive - EPEC Group Pty Ltd\Jupyter Notebooks\04. Report Generation\Projects\KSF\Figures\Plots"
+        overlays_dir=os.path.join("Figures", "Overlays"),
+        plots_dir=os.path.join("Figures", "Plots"),
     )
